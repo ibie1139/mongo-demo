@@ -15,16 +15,17 @@ const courseSchema = new mongoose.Schema({
   isPublished: Boolean
 });
 
-// A document in MongoDB is an object, but first we should have a class
-// To create a class fitting the schema:
+// A document in MongoDB is an object,
+// but first we should have a model built based on  this schema
+// To create a model with the schema, use a mongoose method `model()`.
 const Course = mongoose.model('Course', courseSchema);
 
-// Create
+// CRUD: Create
 async function createCourse() {
   const course = new Course({
-    name: 'TypeScript Course',
-    author: 'Stephen Grider',
-    tags: ['typescript', 'frontend'],
+    name: 'Computer Networks for Non-Techies',
+    author: 'Alton Hardin',
+    tags: ['network'],
     // date -- no need to set here, a default value is defined in the schema
     isPublished: true
   });
@@ -36,7 +37,7 @@ async function createCourse() {
 createCourse(); // DON'T FORGET to call it.
 
 
-// Read - Querying Documents
+// CRUD: Read - Querying Documents
 async function getCourses() {
   // Course class has a method `find`, which returns a DocumentQuery object, similar to promise
   const courses = await Course.find();
@@ -76,7 +77,7 @@ async function queryCourses() {
   // `Course.find().or([{}, {}, ...])`, `Course.find().and([{}, {}, ...])`
   // 2)Regular Expression in JS:
   // /^Mosh/ -start with 'Mosh'; /Mosh$/ -end with 'Mosh'; /.*Mosh.*/ -contain 'Mosh'
-  // The regular expressions are case sensitive. To be insensitive, add `i` at the end:
+  // The regular expressions are case sensitive. To be case-insensitive, add `i` at the end:
   // /^Mosh/i, /Mosh$/i, /.*Msoh.*/i
 
   const courses2 = await Course.find()
@@ -95,11 +96,53 @@ async function queryCourses() {
 //   nin (not in)
 //   */
   const coursesFake1 = await Course.find({ price: 10 }); // price at 10 dollars
-  const coursesFake1 = await Course.find({ price: { $gt: 10 } }); // price > 10 dollars
-  const coursesFake1 = await Course.find({ price: { $gte: 15, $lte: 35 } }); // price >= 15 and <= 35 dollars
-  const coursesFake1 = await Course.find({
+  const coursesFake2 = await Course.find({ price: { $gt: 10 } }); // price > 10 dollars
+  const coursesFake3 = await Course.find({ price: { $gte: 15, $lte: 35 } }); // price >= 15 and <= 35 dollars
+  const coursesFake4 = await Course.find({
     price: {
       $in: [10, 15, 20, 25, 30, 35]
     } }); // price at 10 dollars
 };
-queryCourses();
+// queryCourses();
+
+// CRUD: Update the Document
+// Method 1 - Query First and then Update
+async function updateAfterRetrieving(id) {
+  const course = await Course.findById(id); // a mongoose.query object is returned
+  // course.name = 'Node with ReactJs Full Stack Course';
+  // course.author = 'Grider, Stephen';
+  course.set({
+    name: 'Computer Networks for Non-Techies',
+    author: 'Alton Hardin',
+    tags: ['network', 'computer']
+  });
+  const result = await course.save(); // save() has validation
+  console.log('The first updated course is ', course);
+  console.log('The result is ', result);
+};
+updateAfterRetrieving('6179af0290cea71666e2b4dc');
+
+// Method 2 - Update First and then Retrive Optionally
+async function updateBeforeRetrieve(id1, id2) {
+  // someModel.updateOne(filter, query, ...); -- update directly in DB but not returning the new object
+  // $set, $inc, $mul, etc. <-- update operator
+  const result1 = await Course.updateOne({ _id: id1 }, { $set: { author: 'Stephen Grider AGAIN' } });
+  // const result1 = await coursee1.save(); -- no need to save with this method
+  console.log('Result1 is ', result1);
+
+  // How do you update and return the new document?
+  // {new: true} - return the new document
+  // In this method, the 1st argument is id, not a filter query, so don't use {_id: id}.
+  const result2 = await Course.findByIdAndUpdate(id2, { $set: { 'tags.1': 'nodejs' } }, { new: true });
+  console.log('Result2 is ', result2);
+};
+updateBeforeRetrieve('6179ae61818ef6fc0fa08cb0', '6179ae946d8c89c0d9b40817');
+
+// CRUD: Remove Document
+async function removeCourse(id1, id2) {
+  const course1 = await Course.deleteOne({ _id: id1 }); // delete the first matched doc
+  console.log('Remove course1: ', course1);
+  const course2 = await Course.findByIdAndDelete(id2); // delete and return the deleted document
+  console.log('Remove course2: ', course2);
+};
+removeCourse('6179ae61818ef6fc0fa08cb0', '6179ae946d8c89c0d9b40817');
